@@ -28,6 +28,7 @@ app.get("/", (req, res) => {
 // Get all Restaurants
 app.get("/api/v1/restaurants", async (req, res) => {
   try {
+    console.log("retrieve restaurants list");
     //const results = await db.query("select * from restaurants");
     const restaurantRatingsData = await db.query(
       "select * from restaurants left join (select restaurant_id, COUNT(*), TRUNC(AVG(rating),1) as average_rating from reviews group by restaurant_id) reviews on restaurants.id = reviews.restaurant_id;"
@@ -41,6 +42,7 @@ app.get("/api/v1/restaurants", async (req, res) => {
       },
     });
   } catch (err) {
+    console.log("there is an error");
     console.log(err);
   }
 });
@@ -50,20 +52,18 @@ app.get("/api/v1/restaurants/:id", async (req, res) => {
   console.log(req.params);
 
   try {
-
-
     // const results = await db.query(
     //   `select * from restaurants where id=${req.params.id}`
     // );  ///// prone to sql injection attack
 
- // console.log(results);
+    // console.log(results);
     // const restaurant = await db.query(
     //   "select * from restaurants where id=$1",[req.params.id]
     // );   ////  parametarized query : prevents from being vulnerable to sql injection <attacks></attacks>
 
     const restaurant = await db.query(
       "select * from restaurants left join (select restaurant_id, COUNT(*), TRUNC(AVG(rating),1) as average_rating from reviews group by restaurant_id) reviews on restaurants.id = reviews.restaurant_id where id = $1",
-      [req.params.id]////  parametarized query : prevents from being vulnerable to sql injection <attacks></attacks>
+      [req.params.id] ////  parametarized query : prevents from being vulnerable to sql injection <attacks></attacks>
     );
 
     const reviews = await db.query(
@@ -71,7 +71,6 @@ app.get("/api/v1/restaurants/:id", async (req, res) => {
       [req.params.id]
     );
 
-   
     res.status(200).json({
       status: "succes",
       data: {
@@ -85,82 +84,66 @@ app.get("/api/v1/restaurants/:id", async (req, res) => {
 });
 
 // create a restaurant
-app.post("/api/v1/restaurants", async(req, res) => {
+app.post("/api/v1/restaurants", async (req, res) => {
   // console.log(req.body);
 
-
-  try{
+  try {
     const results = await db.query(
-      "INSERT INTO restaurants (name,location,price_range)values($1,$2,$3)returning *",[req.body.name,req.body.location,req.body.price_range]
+      "INSERT INTO restaurants (name,location,price_range)values($1,$2,$3)returning *",
+      [req.body.name, req.body.location, req.body.price_range]
     );
 
     console.log(results);
     res.status(201).json({
       status: "success",
-  
+
       data: {
         restaurant: results.rows[0],
       },
     });
-
+  } catch (err) {
+    console.log(err);
   }
-
-  catch(err){
-    console.log(err)
-  }
-  
 });
 
 ///update a restaurant
-app.put("/api/v1/restaurants/:id", async(req, res) => {
-
-
-  try{
+app.put("/api/v1/restaurants/:id", async (req, res) => {
+  try {
     const results = await db.query(
-      "UPDATE  restaurants SET name=$1,location=$2,price_range=$3 where id=$4 returning *",[req.body.name,req.body.location,req.body.price_range,req.params.id]
+      "UPDATE  restaurants SET name=$1,location=$2,price_range=$3 where id=$4 returning *",
+      [req.body.name, req.body.location, req.body.price_range, req.params.id]
     );
 
     res.status(200).json({
       status: "success",
-  
+
       data: {
         restaurants: results.rows[0],
       },
     });
-
-  }
-
-  catch(err){
-
-    console.log(err)
+  } catch (err) {
+    console.log(err);
   }
   console.log(req.params.id); ////   dynamic part of url
   console.log(req.body);
-  
 });
 
 /// delete a restaurant
 
 app.delete("/api/v1/restaurants/:id", (req, res) => {
+  try {
+    const results = db.query("DELETE FROM restaurants where id=$1", [
+      req.params.id,
+    ]);
 
-  try{
-
-const results=db.query("DELETE FROM restaurants where id=$1",[req.params.id])
-
-
-res.status(204).json({
-  status: "success",
-});
-  }
-
-  catch(err){
-
+    res.status(204).json({
+      status: "success",
+    });
+  } catch (err) {
     console.log(err);
   }
   // console.log(req.body);
-
 });
-
 
 /// add a review
 app.post("/api/v1/restaurants/:id/addReview", async (req, res) => {
